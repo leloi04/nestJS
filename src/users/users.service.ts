@@ -12,12 +12,17 @@ import { SoftDeleteModel } from 'soft-delete-plugin-mongoose';
 import { IUser } from './users.interface';
 import aqp from 'api-query-params';
 import { Response } from 'express';
+import { Role, RoleDocument } from 'src/roles/schemas/role.schema';
+import { USER_ROLE } from 'src/databases/sample';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectModel(UserModal.name)
     private UserModel: SoftDeleteModel<UserDocument>,
+
+    @InjectModel(Role.name)
+    private RoleModel: SoftDeleteModel<RoleDocument>,
   ) {}
 
   getHashPassword = (password: string) => {
@@ -71,7 +76,9 @@ export class UsersService {
     if (isExist) {
       throw new BadRequestException('Email da ton tai');
     }
-    const role = '67fcfe04225d02a0626287f1';
+    const role = await this.RoleModel.findOne({ name: USER_ROLE }).select(
+      '_id',
+    );
     const hashPassword = this.getHashPassword(password);
     return await this.UserModel.create({
       name,
@@ -80,7 +87,7 @@ export class UsersService {
       age,
       gender,
       address,
-      role,
+      role: role?._id,
     });
   }
 
@@ -115,11 +122,7 @@ export class UsersService {
   findOneByUsername(username: string) {
     return this.UserModel.findOne({ email: username }).populate({
       path: 'role',
-      select: { name: 1, permissions: 1 },
-      populate: {
-        path: 'permissions',
-        select: { _id: 1, name: 1, apiPath: 1, method: 1, module: 1 },
-      },
+      select: { name: 1 },
     });
   }
 
@@ -159,7 +162,10 @@ export class UsersService {
   };
 
   findUserByRefreshToken = async (refreshToken: string) => {
-    return await this.UserModel.findOne({ refreshToken });
+    return await this.UserModel.findOne({ refreshToken }).populate({
+      path: 'role',
+      select: { name: 1 },
+    });
   };
 
   async remove(id: string, user: IUser) {

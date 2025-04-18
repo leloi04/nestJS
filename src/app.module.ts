@@ -13,20 +13,35 @@ import { ResumesModule } from './resumes/resumes.module';
 import { PermissionsModule } from './permissions/permissions.module';
 import { RolesModule } from './roles/roles.module';
 import { DatabasesModule } from './databases/databases.module';
+import { SubscribersModule } from './subscribers/subscribers.module';
+import { MailModule } from './mail/mail.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
+import { HealthModule } from './health/health.module';
 
 @Module({
-  imports: [MongooseModule.forRootAsync({
-    imports: [ConfigModule],
-    useFactory: async (configService: ConfigService) => ({
-      uri: configService.get<string>('MONGO_URL'),
-      connectionFactory: (connection) => {
-        connection.plugin(softDeletePlugin);
-        return connection;
-        }
+  imports: [
+    ScheduleModule.forRoot(),
+    ThrottlerModule.forRoot({
+      throttlers: [
+        {
+          ttl: 60000,
+          limit: 2,
+        },
+      ],
     }),
-    inject: [ConfigService],
-    
-  }),
+    MongooseModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        uri: configService.get<string>('MONGO_URL'),
+        connectionFactory: (connection) => {
+          connection.plugin(softDeletePlugin);
+          return connection;
+        },
+      }),
+      inject: [ConfigService],
+    }),
     ConfigModule.forRoot({
       envFilePath: '.env',
       isGlobal: true,
@@ -39,9 +54,18 @@ import { DatabasesModule } from './databases/databases.module';
     ResumesModule,
     PermissionsModule,
     RolesModule,
-    DatabasesModule
+    DatabasesModule,
+    SubscribersModule,
+    MailModule,
+    HealthModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {}

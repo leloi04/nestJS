@@ -6,6 +6,7 @@ import { Role, RoleDocument } from './schemas/role.schema';
 import { SoftDeleteModel } from 'soft-delete-plugin-mongoose';
 import { IUser } from 'src/users/users.interface';
 import aqp from 'api-query-params';
+import { ADMIN_ROLE } from 'src/databases/sample';
 
 @Injectable()
 export class RolesService {
@@ -90,7 +91,7 @@ export class RolesService {
 
   async remove(id: string, user: IUser) {
     const res = await this.RoleModel.findById(id);
-    if (res?.name == 'ADMIN') {
+    if (res?.name == ADMIN_ROLE) {
       throw new BadRequestException('Day la Role ADMIN khong the xoa');
     }
     await this.RoleModel.updateOne(

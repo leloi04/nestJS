@@ -16,9 +16,12 @@ export class PermissionsService {
 
   async create(createPermissionDto: CreatePermissionDto, user: IUser) {
     const { apiPath, method, module, name } = createPermissionDto;
-    const isExistApiPath = await this.PermissionModel.find({ apiPath });
-    const isExistMethod = await this.PermissionModel.find({ method });
-    if (isExistApiPath.length > 0 && isExistMethod.length > 0) {
+    const isExist = await this.PermissionModel.find({
+      apiPath,
+      module,
+      method,
+    });
+    if (isExist.length > 0) {
       throw new BadRequestException(
         `duong link ${apiPath} voi method la ${method} da ton tai`,
       );
